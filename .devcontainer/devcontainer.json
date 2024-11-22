@@ -1,0 +1,29 @@
+{
+	"name": "Dev Docker Compose",
+	"dockerComposeFile": [
+		"../docker-compose.devcontainer.yaml"
+	],
+	"service": "open-webui",
+	"workspaceFolder": "/app",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"svelte.svelte-vscode",
+				"esbenp.prettier-vscode",
+				"bierner.color-info",
+				"eamodio.gitlens",
+				"dbaeumer.vscode-eslint",
+				"ms-python.black-formatter"
+			],
+			"settings": {
+				"python.defaultInterpreterPath": "/usr/local/bin/python",
+				"python.debug.port": 5678,
+				"python.formatting.provider": "black",
+				"python.debug.host": "0.0.0.0"
+			}
+		}
+	},
+	"postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}"
+}

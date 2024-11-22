@@ -1,0 +1,84 @@
+services:
+
+  postgres:
+    image: pgvector/pgvector:0.7.4-pg17
+    volumes:
+      - ./backend/data/pg_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB-openwebui}
+      POSTGRES_USER: ${POSTGRES_USER-openwebui}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-openwebui}
+      POSTGRES_PORT: ${POSTGRES_PORT-5432}
+    command: "-c log_statement=all"
+    ports:
+      - '127.0.0.1:${POSTGRES_PORT-5432}:${POSTGRES_PORT-5432}'
+    configs:
+      - source: pgvector_init
+        target: /docker-entrypoint-initdb.d/init_pgvector.sql
+
+  ollama:
+    volumes:
+      - ./backend/data/ollama:/root/.ollama
+    environment:
+      OLLAMA_NUM_THREADS: "${OLLAMA_NUM_THREADS-2}"
+    pull_policy: if_not_present
+    restart: unless-stopped
+    image: ollama/ollama:${OLLAMA_DOCKER_TAG-latest}
+
+  # Serve the fronted from a node container running vite in dev mode
+  # to hot reload on svelte changes
+  npm:
+    image: node:22-alpine3.20
+    volumes:
+      - ./:/app
+    entrypoint: ""
+    environment:
+      OPEN_WEBUI_PORT: ${OPEN_WEBUI_PORT-8080}
+    ports:
+      - 127.0.0.1:5173:5173
+    command: |
+      sh -c "
+        cd /app
+        [ ! -d node_modules ] && npm ci
+        npm run dev
+      "
+
+  # Since npm build has not been run to generate the frontend assets, only the
+  # backend api will be served from here. A debugger can also be attached via
+  # port 5678 By default cors allowed origins is set to "*" so the frontend
+  # can hit the backend no problem. In this case the backend must be available
+  # on port 8080 because it's hardcoded to localhost:8080 in dev mode on
+  # line 6 in src/lib/constants.ts
+  open-webui:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    volumes:
+      - ./:/app
+    depends_on:
+      - ollama
+      - npm
+      - postgres
+    ports:
+      - 127.0.0.1:${OPEN_WEBUI_PORT-8080}:8080
+      - 127.0.0.1:5678:5678
+    entrypoint: ""
+    command: |
+      /bin/bash -c "
+        cd /app/backend
+        pip install debugpy
+        python -m debugpy --listen 0.0.0.0:5678 -m uvicorn open_webui.main:app --host 0.0.0.0 --port 8080 --forwarded-allow-ips '*' --reload
+      "
+    environment:
+      OLLAMA_BASE_URL: "http://ollama:11434"
+      WEBUI_AUTH: "False"
+      WEBUI_SECRET_KEY: "${WEBUI_SECRET_KEY-tQD5RHiU42ubYJ1SeRn1}"
+      DATABASE_URL: "postgresql://${POSTGRES_USER-openwebui}:${POSTGRES_PASSWORD-openwebui}@postgres/${POSTGRES_DB-openwebui}"
+      VECTOR_DB: pgvector
+    restart: unless-stopped
+
+configs:
+  pgvector_init:
+    content: |
+      \c ${POSTGRES_DB-openwebui}
+      CREATE EXTENSION IF NOT EXISTS vector;
