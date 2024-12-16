@@ -3,22 +3,29 @@ services:
   postgres:
     image: pgvector/pgvector:0.7.4-pg17
     volumes:
-      - ./backend/data/pg_data:/var/lib/postgresql/data
+      - ./open-webui/backend/data/pg_data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: ${POSTGRES_DB-openwebui}
       POSTGRES_USER: ${POSTGRES_USER-openwebui}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-openwebui}
       POSTGRES_PORT: ${POSTGRES_PORT-5432}
-    command: "-c log_statement=all"
+    #command: "-c log_statement=all"
     ports:
       - '127.0.0.1:${POSTGRES_PORT-5432}:${POSTGRES_PORT-5432}'
     configs:
       - source: pgvector_init
         target: /docker-entrypoint-initdb.d/init_pgvector.sql
 
+  redis:
+    image: redis:7.4
+    command: sh -c "redis-server /conf/redis.conf"
+    configs:
+      - source: redis_conf
+        target: /conf/redis.conf
+
   ollama:
     volumes:
-      - ./backend/data/ollama:/root/.ollama
+      - ./open-webui/backend/data/ollama:/root/.ollama
     environment:
       OLLAMA_NUM_THREADS: "${OLLAMA_NUM_THREADS-2}"
     pull_policy: if_not_present
@@ -30,7 +37,7 @@ services:
   npm:
     image: node:22-alpine3.20
     volumes:
-      - ./:/app
+      - ./open-webui/:/app
     entrypoint: ""
     environment:
       OPEN_WEBUI_PORT: ${OPEN_WEBUI_PORT-8080}
@@ -51,14 +58,15 @@ services:
   # line 6 in src/lib/constants.ts
   open-webui:
     build:
-      context: ./
+      context: ./open-webui
       dockerfile: Dockerfile
     volumes:
-      - ./:/app
+      - ./open-webui/:/app
     depends_on:
       - ollama
       - npm
       - postgres
+      - redis
     ports:
       - 127.0.0.1:${OPEN_WEBUI_PORT-8080}:8080
       - 127.0.0.1:5678:5678
@@ -74,7 +82,11 @@ services:
       WEBUI_AUTH: "False"
       WEBUI_SECRET_KEY: "${WEBUI_SECRET_KEY-tQD5RHiU42ubYJ1SeRn1}"
       DATABASE_URL: "postgresql://${POSTGRES_USER-openwebui}:${POSTGRES_PASSWORD-openwebui}@postgres/${POSTGRES_DB-openwebui}"
+      #PGVECTOR_DB_URL: "postgresql://${POSTGRES_USER-openwebui}:${POSTGRES_PASSWORD-openwebui}@postgres/${POSTGRES_DB-openwebui}"
       VECTOR_DB: pgvector
+      REDIS_URL: "redis://:open-webui@redis:6379/0"
+      WEBSOCKET_MANAGER: redis
+      GLOBAL_LOG_LEVEL: DEBUG
     restart: unless-stopped
 
 configs:
@@ -82,3 +94,10 @@ configs:
     content: |
       \c ${POSTGRES_DB-openwebui}
       CREATE EXTENSION IF NOT EXISTS vector;
+  redis_conf:
+    content: |
+      appendonly yes
+      protected-mode no
+      bind 0.0.0.0
+      port 6379
+      requirepass "open-webui"
