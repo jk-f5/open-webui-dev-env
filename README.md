@@ -88,7 +88,7 @@ Docker Compose will build and run the needed services:
 
 ## Pulling Models with Ollama
 
-To test locally with Ollama, you need to pull at least one language model into the `ollama` container. For example, you might pull the “llama2” model.
+To test locally with Ollama, you need to pull at least one language model into the `ollama` container. For example, you might pull the “qwen2.5:0.5b” model.
 
 ### Step-by-Step for Pulling a Model
 
@@ -102,9 +102,9 @@ To test locally with Ollama, you need to pull at least one language model into t
    ```
 3. Inside the container, run:
    ```bash
-   ollama pull llama2
+   ollama pull qwen2.5:0.5b
    ```
-   (Or replace `llama2` with any other model you want.)
+   (Or replace `qwen2.5:0.5b` with any other model you want.)
 
 The pulled model files will be stored in the volume mounted at `./open-webui/backend/data/ollama`.
 
