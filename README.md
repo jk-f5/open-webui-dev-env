@@ -16,7 +16,7 @@ Below is an overview of how to set up, run, and use this environment.
 
 1. [Docker](https://docs.docker.com/get-docker/)
 2. [Docker Compose](https://docs.docker.com/compose/install/)  
-   • Often included in modern Docker Desktop installations.  
+   - Often included in modern Docker Desktop installations.
 3. [Make](https://www.gnu.org/software/make/) (optional, but recommended)
 
 ---
@@ -26,9 +26,10 @@ Below is an overview of how to set up, run, and use this environment.
 There are two main files of interest:
 
 1. **docker-compose.yaml**  
-   Describes how to build and run the services.  
+   Describes how to build and run the services.
+
 2. **Makefile**  
-   • Provides convenient targets to set up and run the docker-compose environment.  
+   Provides convenient targets to set up and run the docker-compose environment.
 
 ### Step 1: Clone or Use Make to Prepare
 
@@ -38,7 +39,7 @@ If you do not already have the [open-webui](https://github.com/open-webui/open-w
 make open-webui
 ```
 
-This targets clones the Open WebUI repository into the `./open-webui` folder if it is not already present.
+This target clones the Open WebUI repository into the `./open-webui` folder if it is not already present.
 
 ### Step 2: Bring Up the Containers
 
@@ -64,20 +65,20 @@ Docker Compose will build and run the needed services: `postgres`, `redis`, `oll
    It provides hot reloading for Svelte changes.
 
 2. **Python Backend (FastAPI)**  
-   Accessible at [http://127.0.0.1:8080](http://127.0.0.1:8080).  
+   Accessible at [http://127.0.0.1:8080](http://127.0.0.1:8080).
 
 3. **Postgres**  
-   • By default, listens on `127.0.0.1:5432`.  
-   • Database credentials come from environment variables (see docker-compose.yaml).  
+   - By default, listens on `127.0.0.1:5432`.  
+   - Database credentials come from environment variables (see docker-compose.yaml).
 
 4. **Redis**  
-   • Exposed internally to containers at `redis://redis:6379`.  
-   • Not exposed to the host by default.  
-   • Uses a password of `open-webui`.  
+   - Exposed internally to containers at `redis://redis:6379`.  
+   - Not exposed to the host by default.  
+   - Uses a password of `open-webui`.
 
 5. **Ollama**  
-   • By default, the Ollama service runs on port `11434` inside the container.  
-   • Not exposed to host by default.
+   - By default, the Ollama service runs on port `11434` inside the container.  
+   - Not exposed to the host by default.
 
 ---
 
@@ -105,27 +106,58 @@ The pulled model files will be stored in the volume mounted at `./open-webui/bac
 
 ---
 
+## Debugging in VS Code
+
+The Python backend container (`open-webui`) is configured to open a debugger at port 5678. To connect remotely from VS Code, you can configure your project’s `.vscode/launch.json` with the following snippet:
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Remote Attach",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "${workspaceFolder}"
+                }
+            ]
+        }
+    ]
+}
+```
+
+Since we’re running inside a development container, it’s important that `localRoot` and `remoteRoot` are set to the same path mappings. Make sure your `${workspaceFolder}` is the same path both inside and outside the container so that breakpoints will map correctly.
+
+---
+
 ## Troubleshooting & Common Tasks
 
-• **View Logs**  
-  You can view the logs of a specific service (e.g., `open-webui`) with:  
+- **View Logs**  
+  You can view the logs of a specific service (e.g., `open-webui`) with:
   ```bash
   docker compose logs -f open-webui
   ```
   Replace `open-webui` with any service name to view its logs.
 
-• **Bring Everything Down**  
-  To stop all containers and remove them:  
+- **Bring Everything Down**  
+  To stop all containers and remove them:
   ```bash
   make down
   ```
-  or  
+  or
   ```bash
   docker compose -f docker-compose.devcontainer.yaml down
   ```
 
-• **Cleaning Up**  
-  If you need to remove volumes or clean up data:  
+- **Cleaning Up**  
+  If you need to remove volumes or clean up data:
   ```bash
   docker compose down -v
   ```
@@ -137,13 +169,13 @@ The pulled model files will be stored in the volume mounted at `./open-webui/bac
 
 Below are some useful environment variables (defaults shown in parentheses):
 
-• `POSTGRES_DB` (openwebui)  
-• `POSTGRES_USER` (openwebui)  
-• `POSTGRES_PASSWORD` (openwebui)  
-• `POSTGRES_PORT` (5432)  
-• `OPEN_WEBUI_PORT` (8080)  
-• `OLLAMA_NUM_THREADS` (2)  
-• `WEBUI_SECRET_KEY` (tQD5RHiU42ubYJ1SeRn1)  
+- `POSTGRES_DB` (openwebui)
+- `POSTGRES_USER` (openwebui)
+- `POSTGRES_PASSWORD` (openwebui)
+- `POSTGRES_PORT` (5432)
+- `OPEN_WEBUI_PORT` (8080)
+- `OLLAMA_NUM_THREADS` (2)
+- `WEBUI_SECRET_KEY` (tQD5RHiU42ubYJ1SeRn1)
 
 They can be overridden by setting them in a `.env` file or exporting them in your shell before running `docker compose`.
 
@@ -151,9 +183,9 @@ They can be overridden by setting them in a `.env` file or exporting them in you
 
 ## Development Notes
 
-• The **npm** container runs the Svelte frontend in development mode using Vite on port 5173.  
-• The **open-webui** container runs the Python backend via Uvicorn on port 8080 and has a debug port open at 5678.  
-• By default, [CORS is set to "*"](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) to allow local cross-origin requests from the frontend.  
+- The **npm** container runs the Svelte frontend in development mode using Vite on port 5173.  
+- The **open-webui** container runs the Python backend via Uvicorn on port 8080 and has a debug port open at 5678.  
+- By default, [CORS is set to "*"](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) to allow local cross-origin requests from the frontend.
 
 ---
 
@@ -161,6 +193,6 @@ They can be overridden by setting them in a `.env` file or exporting them in you
 
 If you have additions or improvements, feel free to open pull requests or issues in the respective repositories:
 
-• [Open WebUI](https://github.com/open-webui/open-webui)  
-• [This Repository (Docker Configuration)](#)
+- [Open WebUI](https://github.com/open-webui/open-webui)  
+- [This Repository (Docker Configuration)](#)
 
